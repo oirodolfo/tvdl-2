@@ -1,8 +1,8 @@
 // Add simple, fast, scalable persistence: https://docs.begin.com/en/data/begin-data/
-// let data = require('@begin/data')
+let data = require('@begin/data')
 
 // Add secure sessions, middleware, and more: https://docs.begin.com/en/functions/http/
-// let arc = require('@architect/functions')
+let arc = require('@architect/functions')
 
 // TODO: modify the body object!
 let body = `
@@ -18,7 +18,7 @@ let body = `
 
     <h1 class="center-text">
       <!-- ↓ Change "Hello world!" to something else and head on back to Begin! -->
-      Welcome to TVDL
+      Welcome to Kisten! ;)
     </h1>
     <!--
     <p class="center-text">
@@ -30,26 +30,27 @@ let body = `
 </html>
 `;
 
-// exports.handler = async function http(req) {
-//   return {
-//     headers: {
-//       "content-type": "text/html; charset=utf8",
-//       "cache-control":
-//         "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0",
-//     },
-//     body,
-//   };
-// };
+exports.handler = async function http(req) {
+   return {
+     headers: {
+       "content-type": "text/html; charset=utf8",
+      "cache-control":
+        "no-cache, no-store, must-revalidate, max-age=0, s-maxage=0",
+     },
+     body,
+   };
+ };
 
 // Example responses
 
-// Forward requester to a new path
+/* Forward requester to a new path
 exports.handler = async function http(req) {
   return {
     statusCode: 301,
     headers: { location: "https://www.tvdl.app" },
   };
 };
+*/
 
 /* Respond with successful resource creation, CORS enabled
 let arc = require('@architect/functions')
