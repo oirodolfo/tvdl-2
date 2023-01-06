@@ -1,5 +1,7 @@
 const parse = require("url-parse");
 let isURL = require("is-url");
+const { MongoClient } = require("mongodb");
+const axios = require("axios");
 /*
 Versions:
 1303: v3
@@ -18,6 +20,8 @@ let versions = {
   ios13: [1303, 1306, 1308],
   ios13ToUpdate: [],
   ios13UnSupported: [],
+  ios15: [1315],
+  ios15ToUpdate: [],
 };
 
 // let supportedVersions = [1303, 1306, 1307, 1308];
@@ -25,7 +29,11 @@ let upForUpdate = [1307];
 
 exports.checkClientVersion = (body) => {
   if (!body.ver) throw new Error(606);
-  let supportedVersions = [...versions.ios12, ...versions.ios13];
+  let supportedVersions = [
+    ...versions.ios12,
+    ...versions.ios13,
+    ...versions.ios15,
+  ];
   // throwing error 607 even if the shortcut versions is anything that's not in ios12 and ios13 arrays
   if (!supportedVersions.includes(parseInt(body.ver))) throw new Error(607);
 };
@@ -48,6 +56,17 @@ exports.checkIfTwitterUrl = (url) => {
     throw new Error(603);
 };
 
+exports.checkIfTcoUrl = (url) => {
+  const parsedUrl = parse(url);
+  if (
+    parsedUrl.hostname === "t.co" ||
+    parsedUrl.hostname === "www.t.co"
+    // && parsedUrl.hostname !== "mobile.twitter.com"
+  ) {
+    return true;
+  } else return false;
+};
+
 exports.getTweetPath = (url) => parse(url).pathname.split("/")[3];
 
 exports.getApiRequestUrl = (tweetPath) =>
@@ -58,7 +77,8 @@ exports.checkIfContainsVideoOrGif = (data) => {
     !data.hasOwnProperty("extended_entities") ||
     !data.extended_entities.media[0].video_info
   )
-    throw new Error(605);
+    return false;
+  else return true;
 };
 
 exports.getBitrate = (data) => {
@@ -172,7 +192,7 @@ const shouldAskForSupport = () => {
 
   // To double the probability, use 5 (5 & 10). Or to triple, use 3 (3, 6, 9).
   // For upsell in 1 out 10 requests, using 7 (default) since 7 is a prime number
-  if (Math.ceil(Math.random() * 10) % 7 === 0) return true;
+  if (Math.ceil(Math.random() * 10) % 5 === 0) return true;
   else return false;
 
   // hard return for testing
@@ -184,12 +204,14 @@ exports.appendAskForSupport = (downloadObject) => {
     downloadObject["sell"] = true;
     downloadObject["sellLink"] =
       "https://support-tvdl.saifalfalah.workers.dev/";
+    // downloadObject["sellMessage"] =
+    //   "Happy Holidays! Please donate a small amount to support this shortcut! 🙏";
     downloadObject["sellMessage"] =
-      "Thank you for using TVDL. If you like this shortcut, please consider helping me by supporting this shortcut.";
+      "Thank you for using TVDL. If you like this shortcut, please consider helping me by supporting this shortcut. 🙏";
     downloadObject["declineMessage"] =
-      "If you dislike this donation prompt, you can download a version of this shortcut without it, at www.tvdl.app. Thank you!";
-    downloadObject["yesPrompt"] = "Yes, I will support 😀";
-    downloadObject["noPrompt"] = "No, I will not 🙁";
+      "If you have already donated, you can download TVDL - No Donation Edition, at www.tvdl.app. Thank you!";
+    downloadObject["yesPrompt"] = "Yes, I will support 👍😁";
+    downloadObject["noPrompt"] = "No, I will not 👎";
   } else downloadObject["sell"] = false;
   // add url of the website where to redirect users for upsell
   return downloadObject;
@@ -258,4 +280,39 @@ exports.appendLatestVersionInformation = (downloadObject, ver) => {
     }
   }
   return downloadObject;
+};
+
+exports.logError = async (logData) => {
+  const options = {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+  };
+  const client = new MongoClient(process.env.DBSTRING, options);
+  await client.connect();
+  await client
+    .db("errors")
+    .collection("bugs")
+    .insertOne({ ...logData, ts: new Date() });
+  await client.close();
+  return {
+    headers: {
+      "content-type": "application/json; charset=utf8",
+    },
+    body: JSON.stringify({
+      error:
+        "An unexpected error occurred. Try again. If problem persists, please send an email to help@tvdl.app for more help",
+    }),
+    statusCode: 400,
+  };
+};
+
+exports.getTwitterData = async (url, authHeader) => {
+  data = await axios({
+    method: "get",
+    url,
+    headers: {
+      authorization: authHeader,
+    },
+  });
+  return data;
 };
